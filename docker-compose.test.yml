@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+    volumes:
+      - .:/app
+    environment:
+      ENV_FILE: .env.test
+    command: >
+      bash -c "
+      pytest -v tests/"
