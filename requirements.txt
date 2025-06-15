@@ -3,6 +3,6 @@ uvicorn
 python-dotenv
 oracledb
 pydantic
-pytest
 aiofiles
+pytest
 httpx
