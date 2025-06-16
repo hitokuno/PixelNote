@@ -1,10 +1,9 @@
 import sqlite3
 from datetime import datetime
 from typing import List, Tuple, Optional
-from app.db.interface import DBInterface
 import uuid
 
-class SQLiteDB(DBInterface):
+class SQLiteDB:
     def __init__(self):
         self.conn = sqlite3.connect("sqlite.db", check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
@@ -96,7 +95,7 @@ class SQLiteDB(DBInterface):
 
     async def get_image_versions(self, image_id):
         cur = self.conn.cursor()
-        cur.execute("SELECT version FROM drawings WHERE image_id=? ORDER BY version DESC", (image_id,))
+        cur.execute("SELECT version FROM drawings WHERE image_id=? ORDER BY version ASC", (image_id,))
         return [str(row[0]) for row in cur.fetchall()]
 
     async def get_drawing_data(self, image_id, version):

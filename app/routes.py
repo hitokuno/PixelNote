@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Tuple
 from app.db.sqlite_impl import SQLiteDB
@@ -33,7 +33,7 @@ async def rename_image(req: RenameImageRequest):
 
 @router.get("/api/list")
 async def get_list():
-    return await db.get_image_list()
+    return await db.get_image_list()  # 画像リストのみ返却
 
 @router.get("/api/images/{image_id}/versions")
 async def get_versions(image_id: str):

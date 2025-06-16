@@ -4,4 +4,4 @@ pydantic
 oracledb
 pytest
 httpx
-
+python-dotenv

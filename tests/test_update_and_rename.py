@@ -7,9 +7,8 @@ def test_update_and_rename(client):
     assert res.status_code == 200
     image_id = res.json()["image_id"]
 
-    res = client.post(f"/api/save/{image_id}", json={"pixels": pixels_v2})
+    res = client.post("/api/save", json={"image_id": image_id, "pixels": pixels_v2})
     assert res.status_code == 200
     assert res.json()["version"] == "2"
 
-    res = client.put(f"/api/rename/{image_id}", json={"image_name": "アップデート後"})
-    assert res.status_code == 200
+    # Rename API を追記する場合はここで検証

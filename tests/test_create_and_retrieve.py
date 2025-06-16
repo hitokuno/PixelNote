@@ -12,7 +12,7 @@ def test_create_and_retrieve(client):
 
     res_list = client.get("/api/list")
     assert res_list.status_code == 200
-    assert any(img["image_id"] == image_id for img in res_list.json()["images"])
+    assert any(img["image_id"] == image_id for img in res_list.json())
 
     res_versions = client.get(f"/api/images/{image_id}/versions")
     assert res_versions.status_code == 200

@@ -9,12 +9,12 @@ def test_multiple_images_and_versions(client):
     id1 = res1.json()["image_id"]
     id2 = res2.json()["image_id"]
 
-    client.post(f"/api/save/{id1}", json={"pixels": [[2, 2, "#333333"]]})
-    client.post(f"/api/save/{id2}", json={"pixels": [[3, 3, "#444444"]]})
+    client.post("/api/save", json={"image_id": id1, "pixels": [[2, 2, "#333333"]]})
+    client.post("/api/save", json={"image_id": id2, "pixels": [[3, 3, "#444444"]]})
 
     versions1 = client.get(f"/api/images/{id1}/versions")
     versions2 = client.get(f"/api/images/{id2}/versions")
     assert versions1.status_code == 200
     assert versions2.status_code == 200
-    assert versions1.json() == ["2", "1"]
-    assert versions2.json() == ["2", "1"]
+    assert versions1.json() == ["1", "2"]
+    assert versions2.json() == ["1", "2"]
