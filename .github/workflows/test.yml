@@ -1,21 +1,106 @@
-name: Run API Tests
+name: PixelNote CI Test
+
+# 1. gvenzl/oracle-xe:21-slim を CI内で使う（上記 services 使用）
+# 2. 事前に起動されたOracle（例: self-hosted runnerなど）を使う（services 無効のまま）
+
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
+env:
+  DB_USER: test_user
+  DB_PASSWORD: test_pass
+  DB_DSN: localhost:1521/FREE
+  SQLITE_DB_PATH: pixelnote.sqlite
+  DB_IMPL: oracle
+  OIDC_MOCK: true
+  PYTHONUNBUFFERED: 1
 
 jobs:
-  test:
+  test-oracle:
     runs-on: ubuntu-latest
+    # Oracle container を使用する場合のサービス定義（任意）
+    # services:
+    #   oracle:
+    #     image: gvenzl/oracle-xe:21-slim
+    #     ports:
+    #       - 1521:1521
+    #     env:
+    #       ORACLE_PASSWORD: test_pass
+    #       APP_USER: test_user
+    #       APP_USER_PASSWORD: test_pass
+    #     options: >-
+    #       --health-cmd "echo 'SELECT 1 FROM DUAL;' | sqlplus -S test_user/test_pass@localhost:1521/FREE"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 20
+      oracle:
+        image: gvenzl/oracle-xe:21-slim
+        ports:
+          - 1521:1521
+        env:
+          ORACLE_PASSWORD: test_pass
+          APP_USER: test_user
+          APP_USER_PASSWORD: test_pass
+        options: >-
+          --health-cmd "echo 'SELECT 1 FROM DUAL;' | sqlplus -S test_user/test_pass@localhost:1521/FREE"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
 
-    - name: Run tests
-      run: docker compose -f docker-compose.test.yml up --abort-on-container-exit
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Wait for Oracle DB
+      run: |
+        echo "Waiting for Oracle DB to be ready..."
+        sleep 60
+
+    - name: Run Oracle DB init SQL
+      run: |
+        sudo apt-get install -y libaio1
+        echo "CREATE USER test_user IDENTIFIED BY test_pass;" > init.sql
+        echo "GRANT CONNECT, RESOURCE TO test_user;" >> init.sql
+        echo "@app/db/init_oracle.sql" >> init.sql
+        docker cp init.sql $(docker ps -qf "ancestor=gvenzl/oracle-xe:21-slim"):/init.sql
+        docker exec $(docker ps -qf "ancestor=gvenzl/oracle-xe:21-slim") bash -c "echo exit | sqlplus system/test_pass@localhost:1521/FREE @/init.sql"
+
+    - name: Run tests (Oracle)
+      run: |
+        pytest
+
+  test-sqlite:
+    runs-on: ubuntu-latest
+    env:
+      DB_IMPL: sqlite
+      OIDC_MOCK: true
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests (SQLite)
+      run: |
+        pytest
