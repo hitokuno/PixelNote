@@ -18,3 +18,25 @@ def test_multiple_images_and_versions(client):
     assert versions2.status_code == 200
     assert versions1.json() == ["1", "2"]
     assert versions2.json() == ["1", "2"]
+
+def test_list_and_versions_are_desc_order(client):
+    # 複数画像作成
+    image_ids = []
+    for i in range(3):
+        res = client.post("/api/create", json={
+            "image_name": f"テスト{i}",
+            "pixels": [[i, i, "#123456"]]
+        })
+        image_ids.append(res.json()["image_id"])
+
+    # 一覧のlast_modified_at降順チェック
+    res = client.get("/api/list")
+    last_modified_list = [img["last_modified_at"] for img in res.json()]
+    assert last_modified_list == sorted(last_modified_list, reverse=True)
+
+    # バージョンのcreated_at降順チェック
+    for image_id in image_ids:
+        client.post("/api/save", json={"image_id": image_id, "pixels": [[9,9,"#ff0000"]]})
+        versions = client.get(f"/api/images/{image_id}/versions").json()
+        # バージョン番号の降順（"2", "1"...）であること
+        assert versions == sorted(versions, reverse=True)
