@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Tuple
 from fastapi.responses import JSONResponse
@@ -6,9 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 import traceback
 from app.db.sqlite_impl import SQLiteDB
+from app.routes import router
 
 db = SQLiteDB()
-router = APIRouter()
+app = FastAPI()
+app.include_router(router)
 
 class CreateImageRequest(BaseModel):
     image_name: str
