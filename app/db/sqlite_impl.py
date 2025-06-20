@@ -142,23 +142,3 @@ class SQLiteDB:
         except Exception as e:
             self.conn.rollback()
             raise RuntimeError(f"DB error (rename_image): {e}")
-
-    async def get_image_list(self):
-        cur = self.conn.cursor()
-        cur.execute("SELECT image_id, image_name, last_modified_by, last_modified_at FROM image_names")
-        return [dict(row) for row in cur.fetchall()]
-
-    async def get_image_versions(self, image_id):
-        cur = self.conn.cursor()
-        cur.execute("SELECT version FROM drawings WHERE image_id=? ORDER BY version ASC", (image_id,))
-        return [str(row[0]) for row in cur.fetchall()]
-
-    async def get_drawing_data(self, image_id, version):
-        cur = self.conn.cursor()
-        cur.execute("""
-            SELECT x, y, rgb FROM pixels
-            WHERE drawing_id = (
-                SELECT drawing_id FROM drawings WHERE image_id = ? AND version = ?
-            )
-        """, (image_id, version))
-        return [(r["x"], r["y"], r["rgb"]) for r in cur.fetchall()]
