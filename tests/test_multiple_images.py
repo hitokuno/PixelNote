@@ -16,8 +16,8 @@ def test_multiple_images_and_versions(client):
     versions2 = client.get(f"/api/images/{id2}/versions")
     assert versions1.status_code == 200
     assert versions2.status_code == 200
-    assert versions1.json() == ["1", "2"]
-    assert versions2.json() == ["1", "2"]
+    assert versions1.json() == ["2", "1"]
+    assert versions2.json() == ["2", "1"]
 
 def test_list_and_versions_are_desc_order(client):
     # 複数画像作成
