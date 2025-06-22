@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 from typing import List, Tuple
 import uuid
+from fastapi.exceptions import RequestValidationError
 
 class SQLiteDB:
     def __init__(self):
@@ -95,9 +96,11 @@ class SQLiteDB:
     async def get_image_list(self):
         cur = self.conn.cursor()
         return self.select_image_list(cur)
+    
     async def get_image_versions(self, image_id):
         cur = self.conn.cursor()
         return self.select_image_versions(cur, image_id)
+    
     async def get_drawing_data(self, image_id, version):
         cur = self.conn.cursor()
         return self.select_drawing_data(cur, image_id, version)
@@ -137,8 +140,16 @@ class SQLiteDB:
             cur = self.conn.cursor()
             self.update_image_name(cur, image_id, new_name, user_id, now)
             if cur.rowcount == 0:
-                raise ValueError("image_id not found")
+                raise RequestValidationError([{
+                    "loc": ("body", "image_id"),
+                    "msg": "指定したimage_idが存在しません",
+                    "type": "value_error.notfound",
+                    "input": image_id
+                }])
             self.conn.commit()
+        except RequestValidationError:
+            self.conn.rollback()
+            raise
         except Exception as e:
             self.conn.rollback()
             raise RuntimeError(f"DB error (rename_image): {e}")

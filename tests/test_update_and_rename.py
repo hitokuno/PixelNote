@@ -1,7 +1,9 @@
+from tests.utils import assert_with_debug
+
 def test_update_and_rename(client):
     image_name = "アップデート前"
-    pixels_v1 = [[1, 1, "#123456"]]
-    pixels_v2 = [[2, 2, "#654321"]]
+    pixels_v1 = [{"x":1, "y":1, "rgb": "#123456"}]
+    pixels_v2 = [{"x":2, "y":2, "rgb":"#654321"}]
 
     res = client.post("/api/create", json={"image_name": image_name, "pixels": pixels_v1})
     assert res.status_code == 200

@@ -2,6 +2,7 @@ import oracledb
 import os
 from datetime import datetime
 import uuid
+from fastapi.exceptions import RequestValidationError
 
 class OracleDB:
     def __init__(self):
@@ -125,8 +126,16 @@ class OracleDB:
             with conn.cursor() as cur:
                 self.update_image_name(cur, image_id, new_name, user_id, now)
                 if cur.rowcount == 0:
-                    raise ValueError("image_id not found")
+                    raise RequestValidationError([{
+                        "loc": ("body", "image_id"),
+                        "msg": "指定したimage_idが存在しません",
+                        "type": "value_error.notfound",
+                        "input": image_id
+                    }])
                 conn.commit()
+        except RequestValidationError:
+            self.conn.rollback()
+            raise
         except Exception as e:
             conn.rollback()
             raise RuntimeError(f"DB error (rename_image): {e}")

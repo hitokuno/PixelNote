@@ -88,6 +88,11 @@ erDiagram
   - バージョン一覧 … created_at DESC
 - エラーコードは拡張性のため外部管理
 - 全APIはテストケースで検証
+- APIから呼ばれる単位でcommit
+- Exception, RequestValidationErrorでrollback
+- routes.py ではRequestValidationErrorをcatchしないよう徹底
+- DB層は必要に応じてRequestValidationErrorでraise
+- main.pyで全て一元ハンドリング
 
 ---
 

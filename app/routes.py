@@ -2,17 +2,18 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Tuple
 from app.db.sqlite_impl import SQLiteDB
+from app.schemas import Pixel
 
 db = SQLiteDB()
 router = APIRouter()
 
 class CreateImageRequest(BaseModel):
     image_name: str
-    pixels: List[Tuple[int, int, str]]
+    pixels: list[Pixel]
 
 class SaveDrawingRequest(BaseModel):
     image_id: str
-    pixels: List[Tuple[int, int, str]]
+    pixels: list[Pixel]
 
 class RenameImageRequest(BaseModel):
     image_id: str
@@ -20,7 +21,13 @@ class RenameImageRequest(BaseModel):
 
 @router.post("/api/create")
 async def create_image(req: CreateImageRequest):
-    return {"image_id": await db.create_image(req.image_name, req.pixels, "dummy_user")}
+    # db層にタプルリストで渡す
+    image_id = await db.create_image(
+        req.image_name,
+        [(p.x, p.y, p.rgb) for p in req.pixels],
+        user_id="dummy"
+    )
+    return {"image_id": image_id}
 
 @router.post("/api/save")
 async def save_drawing(req: SaveDrawingRequest):
