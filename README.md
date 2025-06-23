@@ -97,4 +97,32 @@ erDiagram
   - 「タプルやrowのリスト」を返すだけ
   - APIから呼ばれる単位でcommit
   - Exception, RequestValidationErrorでrollback
-- main.pyで全て一元エラー�
+- main.pyで全て一元エラーハンドリング
+- 明示的な整形・責任分離を徹底
+- models.py
+  - 内部ロジックやDB整形を行い型安全＆再利用
+  - ドメインオブジェクト、DBデータの1行＝エンティティ（内部用／業務ロジック用）。
+  - 対応するテーブルの列を全て含む
+- schemas.py
+  - FastAPI/Pydantic用（APIリクエスト・レスポンスの検証・シリアライズ用）
+  - API I/Oの型検証・エラーメッセージを集中管理
+
+
+---
+
+## テスト・CI
+
+- SQLite/Oracle両DBでpytest自動テスト
+  - DockerでDB起動（Oracleはgvenzl/oracle-xeイメージ）
+  - GitHub Actionsで両DB対象に全テスト
+- 主なテスト
+  - CRUD正常系、異常系
+  - 複数画像・複数バージョン
+  - 並び順（降順）が正しいか
+  - DBエラー時ロールバックされるか
+
+
+## ライセンス
+
+MIT License  
+Copyright (c) 2025 PixelNote

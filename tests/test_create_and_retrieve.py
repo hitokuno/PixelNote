@@ -20,4 +20,6 @@ def test_create_and_retrieve(client):
     assert_with_debug(res.status_code == 200, res)
     assert_with_debug(res_versions.json() == ["1"], res_versions)
 
-    res
+    res_data = client.get(f"/api/images/{image_id}/1")
+    assert_with_debug(res.status_code == 200, res)
+    assert_with_debug(res_data.json()["pixels"] == pixels, res_data)

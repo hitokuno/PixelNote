@@ -142,4 +142,15 @@ class SQLiteDB:
             self.update_image_name(cur, image_id, new_name, user_id, now)
             if cur.rowcount == 0:
                 raise RequestValidationError([{
-                    "loc": ("body", "image_i
+                    "loc": ("body", "image_id"),
+                    "msg": "指定したimage_idが存在しません",
+                    "type": "value_error.notfound",
+                    "input": image_id
+                }])
+            self.conn.commit()
+        except RequestValidationError:
+            self.conn.rollback()
+            raise
+        except Exception as e:
+            self.conn.rollback()
+            raise RuntimeError(f"DB error (rename_image): {e}")
