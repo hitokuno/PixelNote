@@ -44,7 +44,7 @@ class SQLiteDB:
 
     def select_image_versions(self, cur, image_id):
         cur.execute(
-            "SELECT version, created_at FROM drawings WHERE image_id=? ORDER BY created_at DESC",
+            "SELECT version, created_at, created_by FROM drawings WHERE image_id=? ORDER BY created_at DESC",
             (image_id,)
         )
         return [str(row[0]) for row in cur.fetchall()]
@@ -55,6 +55,7 @@ class SQLiteDB:
             WHERE drawing_id = (
                 SELECT drawing_id FROM drawings WHERE image_id = ? AND version = ?
             )
+            ORDER BY x, y                    
         """, (image_id, version))
         return [(r["x"], r["y"], r["rgb"]) for r in cur.fetchall()]
     
@@ -141,15 +142,4 @@ class SQLiteDB:
             self.update_image_name(cur, image_id, new_name, user_id, now)
             if cur.rowcount == 0:
                 raise RequestValidationError([{
-                    "loc": ("body", "image_id"),
-                    "msg": "指定したimage_idが存在しません",
-                    "type": "value_error.notfound",
-                    "input": image_id
-                }])
-            self.conn.commit()
-        except RequestValidationError:
-            self.conn.rollback()
-            raise
-        except Exception as e:
-            self.conn.rollback()
-            raise RuntimeError(f"DB error (rename_image): {e}")
+                    "loc": ("body", "image_i

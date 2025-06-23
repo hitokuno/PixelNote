@@ -88,27 +88,13 @@ erDiagram
   - バージョン一覧 … created_at DESC
 - エラーコードは拡張性のため外部管理
 - 全APIはテストケースで検証
-- APIから呼ばれる単位でcommit
-- Exception, RequestValidationErrorでrollback
-- routes.py ではRequestValidationErrorをcatchしないよう徹底
-- DB層は必要に応じてRequestValidationErrorでraise
-- main.pyで全て一元ハンドリング
-
----
-
-## テスト・CI
-
-- SQLite/Oracle両DBでpytest自動テスト
-  - DockerでDB起動（Oracleはgvenzl/oracle-xeイメージ）
-  - GitHub Actionsで両DB対象に全テスト
-- 主なテスト
-  - CRUD正常系、異常系
-  - 複数画像・複数バージョン
-  - 並び順（降順）が正しいか
-  - DBエラー時ロールバックされるか
-
-
-## ライセンス
-
-MIT License  
-Copyright (c) 2025 PixelNote
+- routes.py
+  - try-exceptやraise不要
+  - RequestValidationErrorをcatchしないよう徹底
+  - Dict変換はここでのみ明示的に行うことで責任範囲が明確にする
+- DB層
+  - 必要に応じてRequestValidationErrorでraise
+  - 「タプルやrowのリスト」を返すだけ
+  - APIから呼ばれる単位でcommit
+  - Exception, RequestValidationErrorでrollback
+- main.pyで全て一元エラー�

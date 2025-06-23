@@ -1,37 +1,31 @@
-from pydantic import BaseModel, Field, validator
-from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, validator
 import re
 
-class Pixel(BaseModel):
+class PixelSchema(BaseModel):
     x: int
     y: int
     rgb: str
 
     @validator('rgb')
     def rgb_format(cls, v):
-        if not re.fullmatch(r'^#[0-9A-Fa-f]{6}$', v):
-            raise RequestValidationError([{
-                "loc": ("body", "rgb"),
-                "msg": "#RRGGBB形式で指定してください",
-                "type": "value_error.wrong_format",
-                "input": v
-            }])
+        if len(v) > 7:
+            raise ValueError('rgbは7文字以内で指定してください')
+        if not re.fullmatch(r'#[0-9A-Fa-f]{6}', v):
+            raise ValueError('rgbは#RRGGBB形式で指定してください')
         return v
 
 class CreateImageRequest(BaseModel):
     image_name: str
-    pixels: list[Pixel]
+    pixels: list[PixelSchema]
 
     @validator('image_name')
     def image_name_len(cls, v):
         if len(v) > 255:
-            raise RequestValidationError([{
-                "loc": ("body", "image_name"),
-                "msg": "255文字以内で指定してください",
-                "type": "value_error.too_long",
-                "input": v
-            }])
+            raise ValueError('image_nameは255文字以内で指定してください')
         return v
+
+class SaveDrawingRequest(BaseModel):
+    pixels: list[PixelSchema]
 
 class RenameImageRequest(BaseModel):
     image_id: str
@@ -40,21 +34,11 @@ class RenameImageRequest(BaseModel):
     @validator('image_id')
     def image_id_len(cls, v):
         if len(v) > 36:
-            raise RequestValidationError([{
-                "loc": ("body", "image_id"),
-                "msg": "36文字以内で指定してください",
-                "type": "value_error.too_long",
-                "input": v
-            }])
+            raise ValueError('image_idは36文字以内で指定してください')
         return v
 
     @validator('new_name')
     def new_name_len(cls, v):
         if len(v) > 255:
-            raise RequestValidationError([{
-                "loc": ("body", "new_name"),
-                "msg": "255文字以内で指定してください",
-                "type": "value_error.too_long",
-                "input": v
-            }])
+            raise ValueError('new_nameは255文字以内で指定してください')
         return v

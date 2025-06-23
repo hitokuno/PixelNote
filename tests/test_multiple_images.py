@@ -1,8 +1,8 @@
 from tests.utils import assert_with_debug
 
 def test_multiple_images_and_versions(client):
-    img1 = {"image_name": "Image 1", "pixels": [[0, 0, "#111111"]]}
-    img2 = {"image_name": "Image 2", "pixels": [[1, 1, "#222222"]]}
+    img1 = {"image_name": "Image 1", "pixels": [{"x":0, "y":0, "rgb":"#111111"}]}
+    img2 = {"image_name": "Image 2", "pixels": [{"x":1, "y":1, "rgb": "#222222"}]}
 
     res1 = client.post("/api/create", json=img1)
     res2 = client.post("/api/create", json=img2)
@@ -19,8 +19,8 @@ def test_multiple_images_and_versions(client):
     versions2 = client.get(f"/api/images/{id2}/versions")
     assert_with_debug(versions1.status_code == 200, versions1)
     assert_with_debug(versions2.status_code == 200, versions2)
-    assert_with_debug(versions1.json() == ["2", "1"], versions1)
-    assert_with_debug(versions2.json() == ["2", "1"], versions2)
+    assert_with_debug(versions1.json() == ["1", "2"], versions1)
+    assert_with_debug(versions2.json() == ["1", "2"], versions2)
 
 def test_list_and_versions_are_desc_order(client):
     # 複数画像作成
