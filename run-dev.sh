@@ -38,4 +38,4 @@ docker exec -d "$CONTAINER_NAME" bash -c "cd /app && chmod +x startup.sh && ./st
 
 echo "PixelNoteコンテナ($CONTAINER_NAME)がバックグラウンドで起動しました。"
 echo "ログを見るには: docker logs -f $CONTAINER_NAME"
-echo "停�
+echo "停止するには:   docker stop $CONTAINER_NAME"
