@@ -1,39 +1,19 @@
 import sqlite3
+import os
+from dotenv import load_dotenv
 from datetime import datetime
 from typing import List, Tuple
 import uuid
 from fastapi.exceptions import RequestValidationError
 
+# .envの読込
+load_dotenv()
+
 class SQLiteDB:
     def __init__(self):
-        self.conn = sqlite3.connect("sqlite.db", check_same_thread=False)
+        db_path = os.getenv("SQLITE_DB_PATH", "pixelnote.sqlite3")
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
-        self.init_db()
-
-    def init_db(self):
-        cur = self.conn.cursor()
-        cur.executescript("""
-            CREATE TABLE IF NOT EXISTS image_names (
-                image_id TEXT PRIMARY KEY,
-                image_name TEXT,
-                last_modified_by TEXT,
-                last_modified_at TEXT
-            );
-            CREATE TABLE IF NOT EXISTS drawings (
-                drawing_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                image_id TEXT,
-                version INTEGER,
-                created_at TEXT,
-                created_by TEXT
-            );
-            CREATE TABLE IF NOT EXISTS pixels (
-                drawing_id INTEGER,
-                x INTEGER,
-                y INTEGER,
-                rgb TEXT
-            );
-        """)
-        self.conn.commit()
 
     # ---- CRUD細分化 ----
     def select_image_list(self, cur):
@@ -127,7 +107,7 @@ class SQLiteDB:
             version = self.get_latest_version(cur, image_id)
             drawing_id = self.insert_drawing(cur, image_id, version, user_id, now)
             self.insert_pixels(cur, drawing_id, pixels)
-            current_name = self.get_current_image_name(cur, image_id)
+            current_name = self.get_current_imageget_drawing_data_name(cur, image_id)
             self.update_image_name(cur, image_id, current_name, user_id, now)
             self.conn.commit()
             return str(version)

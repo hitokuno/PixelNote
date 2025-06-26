@@ -33,9 +33,11 @@ async def rename_image(data: RenameImageRequest):
 @router.get("/api/list")
 async def list_images():
     rows = await db.get_image_list()
+    print(rows)
     images = [ImageName(*row) for row in rows]
-    rows = await db.get_image_list()
-    images = [ImageName(*row) for row in rows]
+    print(images)
+    images2 = [i.to_dict() for i in images]
+    print(images2)
     return {"images": [i.to_dict() for i in images]}
 
 @router.get("/api/images/{image_id}/versions")
@@ -46,7 +48,6 @@ async def get_versions(image_id: str):
 
 @router.get("/api/images/{image_id}/version/{version}")
 async def get_drawing(image_id: str, version: int):
-    pixel_rows = await db.get_drawing_data(image_id, version)
     pixel_rows = await db.get_drawing_data(image_id, version)
     if not pixel_rows:
         raise HTTPException(status_code=404, detail="指定したバージョンの画像データがありません")

@@ -1,6 +1,6 @@
 # PixelNote
 
-PixelNoteは200x200ピクセルのキャンバスに描画し、バージョン管理・共有ができるWebアプリです。
+PixelNoteは200x200ピクセルのキャンバスにブラウザから絵を描き、バージョン管理・共有ができるWebアプリです。
 
 ---
 
@@ -52,8 +52,8 @@ erDiagram
         VARCHAR2(7) rgb
     }
 
-    IMAGE_NAMES ||--o{ DRAWINGS : ""
-    DRAWINGS ||--o{ PIXELS : ""
+    IMAGE_NAMES ||--o{ DRAWINGS : "has"
+    DRAWINGS ||--o{ PIXELS : "has"
 ```
 
 ---
@@ -74,15 +74,23 @@ erDiagram
 - DBはSQLite/Oracleを.envで切替
 - Docker対応（Apple Silicon/Intel両対応ビルド）
 - GitHub ActionsによるCI自動テスト（両DBで検証）
+- テスト/本番/開発で同じDockerイメージ・同一コードで運用
+- 開発時はDockerコンテナ内にファイルコピーして即反映（マウント競合は避ける）
+- 拡張性重視（カラム追加やバリデーション、API拡張も容易に）
+- エラーハンドリング・バリデーションはFastAPIの標準例外で統一
+- DB初期化・サンプルデータ登録
+
 
 ---
 
 ## 実装スタイル
 
+- 全設定は .env で集中管理（DB接続、ブラシサイズ、ズーム倍率等も環境変数管理）
 - DB操作の分離
   - INSERT/UPDATE/SELECT関数はcommit/rollbackしない
   - API本体関数（create_image等）がcommit/rollbackを担う
   - SELECTも個別関数化し、API本体から呼ぶ
+  - 初期化（テーブル作成）はinit_sqlite.py / init_oracle.pyで明示的に実行
 - 降順ソート
   - /api/list … last_modified_at DESC
   - バージョン一覧 … created_at DESC
@@ -97,6 +105,8 @@ erDiagram
   - 「タプルやrowのリスト」を返すだけ
   - APIから呼ばれる単位でcommit
   - Exception, RequestValidationErrorでrollback
+  - 初期化ロジック（テーブル作成など）は init_sqlite.py や init_oracle.py など「init専用スクリプト」に集約する
+  - sqlite_impl.py などDB操作用クラスは、通常時は「既存テーブルを操作するだけ」
 - main.pyで全て一元エラーハンドリング
 - 明示的な整形・責任分離を徹底
 - models.py
@@ -106,7 +116,15 @@ erDiagram
 - schemas.py
   - FastAPI/Pydantic用（APIリクエスト・レスポンスの検証・シリアライズ用）
   - API I/Oの型検証・エラーメッセージを集中管理
-
+- CIやstartup.sh、開発初期のみ明示的にpython app/db/init_sqlite.pyを実行して初期化
+- Docker起動用スクリプト
+  - CONTAINER_NAME を一意に固定（pixelnote-dev）
+  - 停止中・稼働中コンテナがあれば停止・削除（安心して何度でも再起動可能）
+  - app/・startup.sh・.env・DB初期化スクリプトなどをマウント
+  - ローカルの8000ポートにバインド
+  - --env-file .env で環境変数も自動適用
+  - docker image名は pixelnote:latest（必要に応じてビルド）
+  - バックグラウンドで動作
 
 ---
 
@@ -121,7 +139,37 @@ erDiagram
   - 並び順（降順）が正しいか
   - DBエラー時ロールバックされるか
 
+## データベース初期化
 
+PixelNoteは **SQLite** と **Oracle** 両対応です。  
+初回セットアップ時や、テーブルを作り直したい場合は下記スクリプトを実行してください。
+
+### SQLiteの場合
+
+```bash
+python app/db/init_sqlite.py
+```
+
+- SQLITE_DB_PATH 環境変数でDBファイル名を指定できます（デフォルトは pixelnote.sqlite3）。
+
+### Oracleの場合
+
+```bash
+export DB_USER=xxxx
+export DB_PASSWORD=xxxx
+export DB_DSN=//host:port/SERVICE
+python app/db/init_oracle.py
+```
+
+- テーブルが存在しない場合のみ作成されます。
+- Oracleへの接続情報は必ず環境変数で指定してください。
+
+# 開発コンテナ起動例
+
+- run-dev.shを使うことで常にクリーンな環境を維持
+- ./run-dev.sh
+- docker logs -f pixelnote-dev
+- マウント競合対策として「ファイルは起動時にコンテナへコピー」方式推奨
 ## ライセンス
 
 MIT License  
