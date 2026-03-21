@@ -14,7 +14,7 @@ def test_create_and_retrieve(client):
 
     res_list = client.get("/api/list")
     assert_with_debug(res_list.status_code == 200, res_list)
-    
+
     images = res_list.json()["images"]
     found = [img for img in images if img["image_id"] == image_id]
     assert_with_debug(found, res_list, msg=f"images: {images}")
@@ -22,11 +22,10 @@ def test_create_and_retrieve(client):
     for k in ["image_id", "image_name", "last_modified_by", "last_modified_at"]:
         assert_with_debug(k in img, res_list, msg=f"key {k} missing in {img}")
 
-
     res_versions = client.get(f"/api/images/{image_id}/versions")
-    assert_with_debug(res.status_code == 200, res)
+    assert_with_debug(res_versions.status_code == 200, res_versions)
     assert_with_debug(res_versions.json() == ["1"], res_versions)
 
-    res_data = client.get(f"/api/images/{image_id}/1")
-    assert_with_debug(res.status_code == 200, res)
-    assert_with_debug(res_data.json()["pixels"] == pixels, res_data)
+    res_data = client.get(f"/api/images/{image_id}/version/1")
+    assert_with_debug(res_data.status_code == 200, res_data)
+    assert_with_debug(res_data.json()["pixels"] == payload["pixels"], res_data)

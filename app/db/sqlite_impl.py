@@ -20,7 +20,7 @@ class SQLiteDB:
         cur.execute(
             "SELECT image_id, image_name, last_modified_by, last_modified_at FROM image_names ORDER BY last_modified_at DESC"
         )
-        return [dict(row) for row in cur.fetchall()]
+        return [(row["image_id"], row["image_name"], row["last_modified_by"], row["last_modified_at"]) for row in cur.fetchall()]
 
     def select_image_versions(self, cur, image_id):
         cur.execute(
@@ -104,13 +104,23 @@ class SQLiteDB:
         now = datetime.utcnow().isoformat()
         try:
             cur = self.conn.cursor()
+            current_name = self.get_current_image_name(cur, image_id)
+            if current_name is None:
+                raise RequestValidationError([{
+                    "loc": ("path", "image_id"),
+                    "msg": "指定したimage_idが存在しません",
+                    "type": "value_error.notfound",
+                    "input": image_id
+                }])
             version = self.get_latest_version(cur, image_id)
             drawing_id = self.insert_drawing(cur, image_id, version, user_id, now)
             self.insert_pixels(cur, drawing_id, pixels)
-            current_name = self.get_current_imageget_drawing_data_name(cur, image_id)
             self.update_image_name(cur, image_id, current_name, user_id, now)
             self.conn.commit()
             return str(version)
+        except RequestValidationError:
+            self.conn.rollback()
+            raise
         except Exception as e:
             self.conn.rollback()
             raise RuntimeError(f"DB error (save_drawing): {e}")

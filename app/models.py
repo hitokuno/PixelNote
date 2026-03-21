@@ -33,15 +33,13 @@ class Drawing:
         }
 
 class Pixel:
-    def __init__(self, drawing_id: int, x: int, y: int, rgb: str):
-        self.drawing_id = drawing_id
+    def __init__(self, x: int, y: int, rgb: str):
         self.x = x
         self.y = y
         self.rgb = rgb
 
     def to_dict(self):
         return {
-            "drawing_id": self.drawing_id,
             "x": self.x,
             "y": self.y,
             "rgb": self.rgb

@@ -21,7 +21,9 @@ jobs:
           pip install -r requirements.txt
       - name: Run SQLite tests
         env:
-          DB_MODE: sqlite
+          DB_BACKEND: sqlite
+          SQLITE_DB_PATH: data/sqlite/pixelnote_test.sqlite3
+          PYTHONPATH: .
         run: |
           pytest
 

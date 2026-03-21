@@ -1,11 +1,21 @@
+import os
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from app.schemas import CreateImageRequest, SaveDrawingRequest, RenameImageRequest
 from app.models import Pixel, ImageName, Drawing
-from app.db.sqlite_impl import SQLiteDB
+
+load_dotenv()
 
 router = APIRouter()
-db = SQLiteDB()
 user_id = "dummy_user"
+
+db_backend = os.getenv("DB_BACKEND", "sqlite")
+if db_backend == "oracle":
+    from app.db.oracle_impl import OracleDB
+    db = OracleDB()
+else:
+    from app.db.sqlite_impl import SQLiteDB
+    db = SQLiteDB()
 
 @router.post("/api/create")
 async def create_image(data: CreateImageRequest):
@@ -33,18 +43,13 @@ async def rename_image(data: RenameImageRequest):
 @router.get("/api/list")
 async def list_images():
     rows = await db.get_image_list()
-    print(rows)
     images = [ImageName(*row) for row in rows]
-    print(images)
-    images2 = [i.to_dict() for i in images]
-    print(images2)
     return {"images": [i.to_dict() for i in images]}
 
 @router.get("/api/images/{image_id}/versions")
 async def get_versions(image_id: str):
     rows = await db.get_image_versions(image_id)
-    drawings = [Drawing(*row) for row in rows]
-    return [d.to_dict() for d in drawings]
+    return rows
 
 @router.get("/api/images/{image_id}/version/{version}")
 async def get_drawing(image_id: str, version: int):

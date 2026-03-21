@@ -3,6 +3,7 @@ import os
 
 db_path = os.getenv("SQLITE_DB_PATH", "pixelnote.sqlite3")
 
+os.makedirs(os.path.dirname(db_path), exist_ok=True) if os.path.dirname(db_path) else None
 conn = sqlite3.connect(db_path)
 cur = conn.cursor()
 

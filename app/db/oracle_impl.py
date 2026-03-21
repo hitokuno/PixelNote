@@ -18,11 +18,11 @@ class OracleDB:
     # --- CRUD分離 ---
     def select_image_list(self, cur):
         cur.execute("SELECT image_id, image_name, last_modified_by, last_modified_at FROM image_names ORDER BY last_modified_at DESC")
-        return [dict(row) for row in cur.fetchall()]
+        return [(row[0], row[1], row[2], row[3]) for row in cur.fetchall()]
 
     def select_image_versions(self, cur, image_id):
         cur.execute(
-            "SELECT version, created_at FROM drawings WHERE image_id=? ORDER BY created_at DESC",
+            "SELECT version FROM drawings WHERE image_id=:1 ORDER BY created_at DESC",
             (image_id,)
         )
         return [str(row[0]) for row in cur.fetchall()]
@@ -31,11 +31,11 @@ class OracleDB:
         cur.execute("""
             SELECT x, y, rgb FROM pixels
             WHERE drawing_id = (
-                SELECT drawing_id FROM drawings WHERE image_id = ? AND version = ?
+                SELECT drawing_id FROM drawings WHERE image_id = :1 AND version = :2
             )
         """, (image_id, version))
-        return [(r["x"], r["y"], r["rgb"]) for r in cur.fetchall()]
-    
+        return [(r[0], r[1], r[2]) for r in cur.fetchall()]
+
     def insert_image_name(self, cur, image_id, image_name, user_id, now):
         cur.execute(
             "INSERT INTO image_names (image_id, image_name, last_modified_by, last_modified_at) VALUES (:1, :2, :3, :4)",
@@ -48,7 +48,7 @@ class OracleDB:
             "INSERT INTO drawings (image_id, version, created_at, created_by) VALUES (:1, :2, :3, :4) RETURNING drawing_id INTO :5",
             (image_id, version, now, user_id, did)
         )
-        return int(did.getvalue())
+        return int(did.getvalue()[0])
 
     def insert_pixels(self, cur, drawing_id, pixels):
         cur.executemany(
@@ -73,16 +73,28 @@ class OracleDB:
 
     # --- API本体 ---
     async def get_image_list(self):
-        cur = self.conn.cursor()
-        return self.select_image_list(cur)
+        conn = self.pool.acquire()
+        try:
+            with conn.cursor() as cur:
+                return self.select_image_list(cur)
+        finally:
+            conn.close()
 
     async def get_image_versions(self, image_id):
-        cur = self.conn.cursor()
-        return self.select_image_versions(cur, image_id)
+        conn = self.pool.acquire()
+        try:
+            with conn.cursor() as cur:
+                return self.select_image_versions(cur, image_id)
+        finally:
+            conn.close()
 
     async def get_drawing_data(self, image_id, version):
-        cur = self.conn.cursor()
-        return self.select_drawing_data(cur, image_id, version)
+        conn = self.pool.acquire()
+        try:
+            with conn.cursor() as cur:
+                return self.select_drawing_data(cur, image_id, version)
+        finally:
+            conn.close()
 
     async def create_image(self, image_name, pixels, user_id):
         image_id = str(uuid.uuid4())
@@ -106,13 +118,23 @@ class OracleDB:
         conn = self.pool.acquire()
         try:
             with conn.cursor() as cur:
+                current_name = self.get_current_image_name(cur, image_id)
+                if current_name is None:
+                    raise RequestValidationError([{
+                        "loc": ("path", "image_id"),
+                        "msg": "指定したimage_idが存在しません",
+                        "type": "value_error.notfound",
+                        "input": image_id
+                    }])
                 version = self.get_latest_version(cur, image_id)
                 drawing_id = self.insert_drawing(cur, image_id, version, user_id, now)
                 self.insert_pixels(cur, drawing_id, pixels)
-                current_name = self.get_current_image_name(cur, image_id)
                 self.update_image_name(cur, image_id, current_name, user_id, now)
                 conn.commit()
             return str(version)
+        except RequestValidationError:
+            conn.rollback()
+            raise
         except Exception as e:
             conn.rollback()
             raise RuntimeError(f"DB error (save_drawing): {e}")
@@ -134,7 +156,7 @@ class OracleDB:
                     }])
                 conn.commit()
         except RequestValidationError:
-            self.conn.rollback()
+            conn.rollback()
             raise
         except Exception as e:
             conn.rollback()
